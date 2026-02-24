@@ -23,22 +23,22 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       with:
-        gradle-version: '8.2.1' # 这里会自动安装环境所需的 Gradle
+        gradle-version: '8.2.1'
 
     - name: Build with Gradle
       id: build_step
-      # 注意：这里去掉了 ./ 前缀
       run: gradle assembleDebug --stacktrace --no-daemon
       continue-on-error: true
 
     - name: Extract Errors on Failure
       if: steps.build_step.outcome == 'failure'
       run: |
-        echo "### ❌ 构建失败分析报告" >> $GITHUB_STEP_SUMMARY
-        echo "关键错误提取：" >> $GITHUB_STEP_SUMMARY
+        echo "### ❌ Kotlin 编译器错误汇总" >> $GITHUB_STEP_SUMMARY
+        echo "如果你看到这篇文章，说明代码中有语法错误，请检查以下提取出的信息：" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+        # 重新运行编译并抓取以 "e: " 开头的 Kotlin 报错行
         gradle assembleDebug --stacktrace --no-daemon > build_log.txt 2>&1 || true
-        grep -C 5 -E "Error|Exception|Failed|Caused by" build_log.txt | head -n 50 >> $GITHUB_STEP_SUMMARY
+        grep -E "e: |Error|Exception|Failed|Caused by" build_log.txt | head -n 100 >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         exit 1
 
