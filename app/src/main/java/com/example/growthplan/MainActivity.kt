@@ -159,17 +159,32 @@ fun HomeScreen(navController: NavController, viewModel: GrowthViewModel) {
                     )
                 }
             },
+
             confirmButton = {
-                Button(onClick = {
-                    scope.launch {
-                        isAnalyzing = true
-                        aiResponse = "正在深度思考..."
-                        val result = generativeModel.generateContent("你是一个严厉的成长教练。用户说：$userInput。请分析这个目标，给出1句毒舌点评，并将其拆解为3个可量化的日任务指标。").text
-                        aiResponse = result ?: "大脑短路了..."
-                        isAnalyzing = false
-                    }
-                }) { Text("分析拆解") }
-            },
+                Button(
+                    onClick = {
+                        if (userInput.isBlank()) return@Button
+                        scope.launch {
+                            isAnalyzing = true
+                            aiResponse = "正在深度思考..."
+                            try {
+                                // 增加异常处理防止闪退
+                                val response = generativeModel.generateContent("你是一个严厉的成长教练。用户说：$userInput。请分析这个目标，给出1句毒舌点评，并将其拆解为3个可量化的日任务指标。")
+                                aiResponse = response.text ?: "AI 沉默了，请重试。"
+                            } catch (e: Exception) {
+                                // 如果网络不行或 API Key 报错，捕获它并显示在界面上，而不是闪退
+                                aiResponse = "连接失败: ${e.localizedMessage}\n(提示：请检查网络或是否开启了 VPN)"
+                            } finally {
+                                isAnalyzing = false
+                            }
+                        }
+                    },
+                    enabled = !isAnalyzing // 运行中禁用按钮，防止重复点击
+                ) { 
+                    Text(if (isAnalyzing) "分析中..." else "分析拆解") 
+                }
+            }
+
             dismissButton = { TextButton(onClick = { showAiDialog = false }) { Text("关闭") } }
         )
     }
